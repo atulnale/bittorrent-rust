@@ -52,7 +52,7 @@ fn decode_bencoded_value(encoded_value: &str) -> (serde_json::Value, &str) {
                 let key = match key {
                     serde_json::Value::String(k) => k,
                     k => {
-                        panic!("key should be string")
+                        panic!("key should be string not {k:?}")
                     }
                 };
                 let (val, rem) = decode_bencoded_value(rem);
