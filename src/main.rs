@@ -5,11 +5,17 @@ use std::env;
 
 #[allow(dead_code)]
 fn decode_bencoded_value(encoded_value: &str) -> serde_json::Value {
-    // If encoded_value starts with a digit, it's a number
-    if let Some((len, rest)) = encoded_value.split_once(':') {
-        if let Ok(len) = len.parse::<usize>() {
-            return serde_json::Value::String(rest[..len].to_string());
-        }
+    if let Some(x) = encoded_value
+        .strip_prefix("i")
+        .and_then(|x| x.split_once("e"))
+        .and_then(|(digits, _)| digits.parse::<i64>().ok())
+    {
+        return x.into();
+    } else if let Some(len) = encoded_value
+        .split_once(':')
+        .and_then(|(len, rest)| len.parse::<usize>().ok())
+    {
+        return serde_json::Value::String(rest[..len].to_string());
     }
     panic!("Unhandled encoded value: {}", encoded_value)
 }
