@@ -1,4 +1,7 @@
-use std::env;
+use std::{
+    collections::{BTreeMap, HashMap},
+    env,
+};
 
 // Available if you need it!
 // use serde_bencode
@@ -40,6 +43,23 @@ fn decode_bencoded_value(encoded_value: &str) -> (serde_json::Value, &str) {
                 rest = remainder;
             }
             return (v.into(), &rest[1..]);
+        }
+        Some('d') => {
+            let mut map = serde_json::Map::new();
+            let mut rest = encoded_value.split_at(1).1;
+            while !rest.is_empty() && !rest.starts_with('e') {
+                let (key, rem) = decode_bencoded_value(rest);
+                let key = match key {
+                    serde_json::Value::String(k) => k,
+                    k => {
+                        panic!("key should be string")
+                    }
+                };
+                let (val, rem) = decode_bencoded_value(rem);
+                map.insert(key, val);
+                rest = rem;
+            }
+            return (map.into(), &rest[1..]);
         }
         Some('1'..='9') => {
             if let Some((len, rest)) = encoded_value.split_once(":") {
@@ -92,11 +112,11 @@ mod tests {
     #[test]
     fn test4() {
         let (val, _) = decode_bencoded_value("li32eli44eee");
-        assert_eq!(json!([32,[44]]), val);
+        assert_eq!(json!([32, [44]]), val);
     }
     #[test]
     fn test5() {
         let (val, _) = decode_bencoded_value("lli4eei5ee");
-        assert_eq!(json!([[4],5]), val);
+        assert_eq!(json!([[4], 5]), val);
     }
 }
