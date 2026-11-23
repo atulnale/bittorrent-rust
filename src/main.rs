@@ -1,7 +1,6 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    env,
-};
+use std::env;
+
+use serde::Deserialize;
 
 // Available if you need it!
 // use serde_bencode
@@ -21,6 +20,28 @@ use std::{
 //     }
 //     panic!("Unhandled encoded value: {}", encoded_value)
 // }
+#[derive(Debug, Clone, Deserialize)]
+struct Torrent {
+    announce: reqwest::Url,
+    info: Info,
+}
+#[derive(Debug, Clone, Deserialize)]
+struct Info {
+    name: String,
+    #[serde(rename = "piece length")]
+    plength: usize,
+    length: usize,
+    #[serde(with = "serde_bytes")]
+    pieces: Vec<u8>,
+    #[serde(default)]
+    files: Option<Vec<File>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct File {
+    length: usize,
+    path: Vec<String>,
+}
 
 #[allow(dead_code)]
 fn decode_bencoded_value(encoded_value: &str) -> (serde_json::Value, &str) {
@@ -77,16 +98,31 @@ fn decode_bencoded_value(encoded_value: &str) -> (serde_json::Value, &str) {
 fn main() {
     let args: Vec<String> = env::args().collect();
     let command = &args[1];
-
-    if command == "decode" {
-        // You can use print statements as follows for debugging, they'll be visible when running tests.
-
-        let encoded_value = &args[2];
-        let (val, _) = decode_bencoded_value(encoded_value);
-        println!("{}", val.to_string());
-    } else {
-        println!("unknown command: {}", args[1])
+    match command.as_str() {
+        "decide" => {
+            let encoded_value = &args[2];
+            let (val, _) = decode_bencoded_value(encoded_value);
+            println!("{}", val.to_string());
+        }
+        "info" => {
+            let content = get_file_content(&args[2]).unwrap();
+            let torrent: Torrent = serde_bencode::from_bytes(content.as_slice()).unwrap();
+            get_torrent_info(&torrent);
+        }
+        _ => {
+            println!("unknown command: {}", args[1])
+        }
     }
+}
+
+fn get_torrent_info(torrent: &Torrent) {
+    println!("Tracker URL: {}", torrent.announce);
+    println!("Length: {}", torrent.info.length);
+}
+fn get_file_content(path: &String) -> std::io::Result<Vec<u8>> {
+    dbg!(path);
+    let content = std::fs::read(path)?;
+    Ok(content)
 }
 
 #[cfg(test)]
