@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, io};
 
 use serde::Deserialize;
 
@@ -99,9 +99,11 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let command = &args[1];
     match command.as_str() {
-        "decide" => {
+        "decode" => {
             let encoded_value = &args[2];
+
             let (val, _) = decode_bencoded_value(encoded_value);
+            // let val = decode_using_lib(encoded_value).unwrap();
             println!("{}", val.to_string());
         }
         "info" => {
@@ -113,6 +115,13 @@ fn main() {
             println!("unknown command: {}", args[1])
         }
     }
+}
+
+fn decode_using_lib(s: &str) -> io::Result<serde_json::Value> {
+    let res: serde_json::Value = serde_bencode::from_bytes(s.as_bytes())
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    dbg!(&res);
+    Ok(res)
 }
 
 fn get_torrent_info(torrent: &Torrent) {
